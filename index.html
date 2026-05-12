@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selo Real — Estoque</title>
+    <style>
+        :root {
+            --bg: #0e0e0e;
+            --surface: #1a1a1a;
+            --surface2: #242424;
+            --border: #2e2e2e;
+            --gold: #c9971a;
+            --gold-light: #e8b82a;
+            --text: #f0f0f0;
+            --text-muted: #777;
+            --danger: #e05252;
+            --success: #4caf76;
+            --warning: #e8a020;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-box {
+            width: 44px; height: 44px;
+            background: var(--gold);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 16px; color: #0e0e0e;
+            letter-spacing: 1px; flex-shrink: 0;
+        }
+
+        .brand-name { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; line-height: 1; }
+        .brand-sub  { font-size: 10px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+
+        /* ── Stats bar ── */
+        .stats-bar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex; gap: 36px; overflow-x: auto;
+        }
+
+        .stat { display: flex; flex-direction: column; gap: 2px; }
+        .stat-value { font-size: 24px; font-weight: 800; line-height: 1; color: var(--gold-light); }
+        .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex; background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px; gap: 4px;
+        }
+
+        .tab {
+            padding: 14px 22px; font-size: 13px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase;
+            color: var(--text-muted); cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s; user-select: none;
+        }
+        .tab.active { color: var(--gold-light); border-bottom-color: var(--gold-light); }
+        .tab:hover:not(.active) { color: var(--text); }
+
+        /* ── Container ── */
+        .container { padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 22px; gap: 12px; flex-wrap: wrap;
+        }
+
+        .btn-add {
+            padding: 10px 20px; background: var(--gold); color: #0e0e0e;
+            border: none; border-radius: var(--radius); font-weight: 800; font-size: 13px;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            letter-spacing: 0.5px; transition: background 0.2s, transform 0.1s; white-space: nowrap;
+        }
+        .btn-add:hover  { background: var(--gold-light); }
+        .btn-add:active { transform: scale(0.97); }
+
+        /* ── Grid ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── Shirt Card ── */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            position: relative;
+        }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card.low-stock  { border-color: var(--warning); }
+        .card.out-of-stock { border-color: var(--danger); opacity: 0.65; }
+
+        .card-color-strip { height: 10px; width: 100%; }
+        .card-body { padding: 14px; }
+
+        .card-name {
+            font-size: 15px; font-weight: 800; margin-bottom: 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.3px;
+        }
+
+        .card-color-row {
+            display: flex; align-items: center; gap: 7px; margin-bottom: 14px;
+        }
+        .color-dot {
+            width: 13px; height: 13px; border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.15); flex-shrink: 0;
+        }
+        .color-name { font-size: 12px; color: var(--text-muted); }
+
+        /* ── Total stock big number ── */
+        .card-total {
+            font-size: 42px; font-weight: 900; line-height: 1;
+            margin-bottom: 4px;
+        }
+        .card-total.ok   { color: var(--text); }
+        .card-total.low  { color: var(--warning); }
+        .card-total.zero { color: var(--danger); }
+        .card-total-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+
+        /* ── Size mini pills ── */
+        .size-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+        .size-pill {
+            padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;
+            letter-spacing: 0.5px; border: 1px solid var(--border);
+        }
+        .size-pill.has-stock { background: var(--surface2); color: var(--text); }
+        .size-pill.no-stock  { background: transparent; color: var(--text-muted); opacity: 0.45; }
+
+        /* ── Card footer ── */
+        .card-footer {
+            display: flex; gap: 6px;
+            padding-top: 10px; border-top: 1px solid var(--border);
+        }
+        .btn-sm {
+            flex: 1; padding: 7px 4px; border-radius: 7px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--text-muted); font-size: 12px; cursor: pointer;
+            transition: all 0.15s; font-weight: 600;
+        }
+        .btn-sm:hover        { border-color: var(--gold); color: var(--gold-light); }
+        .btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+        .btn-sizes {
+            flex: 2; padding: 7px 4px; border-radius: 7px;
+            border: 1px solid var(--gold); background: rgba(201,151,26,0.1);
+            color: var(--gold-light); font-size: 12px; cursor: pointer;
+            transition: all 0.15s; font-weight: 700;
+        }
+        .btn-sizes:hover { background: rgba(201,151,26,0.25); }
+
+        .stock-badge {
+            position: absolute; top: 18px; right: 10px;
+            font-size: 9px; font-weight: 800; padding: 2px 7px;
+            border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge-low { background: var(--warning); color: #0e0e0e; }
+        .badge-out { background: var(--danger); color: #fff; }
+
+        /* ── Stamp Card ── */
+        .stamp-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s; position: relative;
+        }
+        .stamp-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .stamp-card.low-stock   { border-color: var(--warning); }
+        .stamp-card.out-of-stock { border-color: var(--danger); opacity: 0.65; }
+
+        .stamp-icon {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, #2a2000, #4a3800);
+            border: 1px solid var(--gold); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; margin-bottom: 14px;
+        }
+        .stamp-name { font-size: 15px; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.3px; }
+        .stamp-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; min-height: 16px; }
+        .stamp-qty-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
+        .stamp-qty { font-size: 36px; font-weight: 900; line-height: 1; color: var(--gold-light); }
+        .stamp-qty.low  { color: var(--warning); }
+        .stamp-qty.zero { color: var(--danger); }
+
+        .qty-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .qty-btns { display: flex; flex-direction: column; gap: 5px; }
+        .qty-btn {
+            width: 36px; height: 36px; border-radius: 8px; border: none;
+            font-size: 20px; font-weight: 800; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; line-height: 1;
+        }
+        .qty-btn-minus { background: rgba(224,82,82,0.12); color: var(--danger); border: 1px solid rgba(224,82,82,0.25); }
+        .qty-btn-minus:hover { background: var(--danger); color: #fff; }
+        .qty-btn-plus  { background: rgba(76,175,118,0.12); color: var(--success); border: 1px solid rgba(76,175,118,0.25); }
+        .qty-btn-plus:hover  { background: var(--success); color: #fff; }
+        .qty-btn:active { transform: scale(0.9); }
+
+        /* ── Modal ── */
+        .overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 28px; width: 100%;
+            max-width: 480px; max-height: 90vh; overflow-y: auto;
+        }
+
+        .modal-title { font-size: 20px; font-weight: 900; margin-bottom: 24px; letter-spacing: 0.5px; }
+
+        .form-group  { margin-bottom: 18px; }
+        .form-label  { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .form-input  {
+            width: 100%; padding: 11px 14px; background: var(--surface2);
+            border: 1px solid var(--border); border-radius: 9px; color: var(--text);
+            font-size: 15px; transition: border-color 0.2s; outline: none;
+        }
+        .form-input:focus { border-color: var(--gold); }
+
+        /* ── Color picker ── */
+        .color-picker-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .color-swatch {
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: border-color 0.15s, transform 0.1s;
+            position: relative;
+        }
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.sel   { border-color: var(--gold-light) !important; }
+        .color-swatch.sel::after {
+            content: '✓'; position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9); line-height: 1;
+        }
+        .color-selected-label { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+        /* ── Sizes detail modal ── */
+        .sizes-modal { max-width: 400px; }
+
+        .sizes-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+        }
+        .sizes-color-dot {
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0;
+        }
+        .sizes-title { font-size: 20px; font-weight: 900; letter-spacing: 0.5px; }
+
+        .size-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+        .size-row {
+            display: flex; align-items: center;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 16px; gap: 12px;
+        }
+
+        .size-row-label {
+            font-size: 18px; font-weight: 900; letter-spacing: 1px;
+            width: 48px; flex-shrink: 0; color: var(--text);
+        }
+
+        .size-row-qty {
+            flex: 1; font-size: 32px; font-weight: 900; text-align: center; line-height: 1;
+        }
+        .size-row-qty.ok   { color: var(--text); }
+        .size-row-qty.low  { color: var(--warning); }
+        .size-row-qty.zero { color: var(--text-muted); }
+
+        .size-row-btns { display: flex; gap: 6px; flex-shrink: 0; }
+
+        .size-adj-btn {
+            width: 40px; height: 40px; border-radius: 9px; border: none;
+            font-size: 22px; font-weight: 800; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; line-height: 1;
+        }
+        .size-adj-btn.plus  { background: rgba(76,175,118,0.15); color: var(--success); border: 1px solid rgba(76,175,118,0.3); }
+        .size-adj-btn.plus:hover  { background: var(--success); color: #fff; }
+        .size-adj-btn.minus { background: rgba(224,82,82,0.12); color: var(--danger);  border: 1px solid rgba(224,82,82,0.25); }
+        .size-adj-btn.minus:hover { background: var(--danger); color: #fff; }
+        .size-adj-btn:active { transform: scale(0.9); }
+
+        .size-row-total {
+            font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
+            text-align: right; margin-top: -6px;
+        }
+
+        /* ── Modal footer ── */
+        .modal-footer { display: flex; gap: 10px; margin-top: 4px; }
+        .btn-cancel {
+            flex: 1; padding: 12px; border-radius: 10px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--text-muted); font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: border-color 0.15s, color 0.15s;
+        }
+        .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+        .btn-save {
+            flex: 2; padding: 12px; border-radius: 10px; border: none;
+            background: var(--gold); color: #0e0e0e; font-size: 14px; font-weight: 800;
+            cursor: pointer; transition: background 0.2s; letter-spacing: 0.5px;
+        }
+        .btn-save:hover { background: var(--gold-light); }
+
+        /* ── Empty state ── */
+        .empty {
+            grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: var(--text-muted);
+        }
+        .empty-icon  { font-size: 52px; margin-bottom: 18px; opacity: 0.4; }
+        .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+        .empty-text  { font-size: 14px; margin-bottom: 24px; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 28px; right: 28px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 20px; font-size: 14px; font-weight: 600;
+            z-index: 200; transform: translateY(80px); opacity: 0;
+            transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show  { transform: translateY(0); opacity: 1; }
+        .toast.sold  { border-color: var(--danger);  color: var(--danger); }
+        .toast.added { border-color: var(--success); color: var(--success); }
+        .toast.saved { border-color: var(--gold);    color: var(--gold-light); }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            header, .stats-bar, .tabs { padding-left: 16px; padding-right: 16px; }
+            .container { padding: 16px; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+            .stats-bar { gap: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+    <div class="logo-box">SR</div>
+    <div>
+        <div class="brand-name">Selo Real</div>
+        <div class="brand-sub">Gestão de Estoque</div>
+    </div>
+</header>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar" id="stats-bar"></div>
+
+<!-- ── Tabs ── -->
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('camisetas')">👕 Camisetas</div>
+    <div class="tab"       onclick="switchTab('estampas')">🎨 Estampas</div>
+</div>
+
+<!-- ── Camisetas ── -->
+<div id="tab-camisetas">
+    <div class="container">
+        <div class="toolbar">
+            <div style="font-size:13px;color:var(--text-muted)">Clique em <strong style="color:var(--gold-light)">Ver Tamanhos</strong> para ajustar o estoque por tamanho</div>
+            <button class="btn-add" onclick="openShirtModal()">＋ Nova Camiseta</button>
+        </div>
+        <div class="grid" id="shirts-grid"></div>
+    </div>
+</div>
+
+<!-- ── Estampas ── -->
+<div id="tab-estampas" style="display:none">
+    <div class="container">
+        <div class="toolbar">
+            <div></div>
+            <button class="btn-add" onclick="openStampModal()">＋ Nova Estampa</button>
+        </div>
+        <div class="grid" id="stamps-grid"></div>
+    </div>
+</div>
+
+<!-- ── Modal: Adicionar/Editar Camiseta ── -->
+<div class="overlay" id="modal-shirt">
+    <div class="modal">
+        <div class="modal-title" id="shirt-modal-title">Nova Camiseta</div>
+        <input type="hidden" id="shirt-id">
+
+        <div class="form-group">
+            <label class="form-label">Nome / Estampa</label>
+            <input class="form-input" id="shirt-name" type="text" placeholder="Ex: Preta, Logo Principal, Floral…">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Cor</label>
+            <div class="color-picker-grid" id="color-grid"></div>
+            <div class="color-selected-label" id="color-label"></div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('modal-shirt')">Cancelar</button>
+            <button class="btn-save"   onclick="saveShirt()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Tamanhos ── -->
+<div class="overlay" id="modal-sizes">
+    <div class="modal sizes-modal">
+        <div class="sizes-header">
+            <div class="sizes-color-dot" id="sizes-color-dot"></div>
+            <div class="sizes-title"     id="sizes-title"></div>
+        </div>
+
+        <div class="size-rows" id="size-rows"></div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('modal-sizes')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Estampa ── -->
+<div class="overlay" id="modal-stamp">
+    <div class="modal">
+        <div class="modal-title" id="stamp-modal-title">Nova Estampa</div>
+        <input type="hidden" id="stamp-id">
+
+        <div class="form-group">
+            <label class="form-label">Nome da Estampa</label>
+            <input class="form-input" id="stamp-name" type="text" placeholder="Ex: Logo SR, Cobra, Tribal…">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Descrição (opcional)</label>
+            <input class="form-input" id="stamp-desc" type="text" placeholder="Ex: Silk screen frente, bordado…">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Quantidade Disponível</label>
+            <input class="form-input" id="stamp-qty" type="number" min="0" value="1">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Emoji (opcional)</label>
+            <input class="form-input" id="stamp-icon" type="text" maxlength="2" placeholder="🔥  ⭐  👑  🐍">
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('modal-stamp')">Cancelar</button>
+            <button class="btn-save"   onclick="saveStamp()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─────────────────────────── Data ─── */
+
+const SIZES = ['P', 'M', 'G', 'GG', 'XGG'];
+
+const COLORS = [
+    { name: 'Preto',         hex: '#111111' },
+    { name: 'Branco',        hex: '#F5F5F5' },
+    { name: 'Cinza',         hex: '#888888' },
+    { name: 'Chumbo',        hex: '#444444' },
+    { name: 'Azul Royal',    hex: '#1D4ED8' },
+    { name: 'Azul Marinho',  hex: '#1E3A5F' },
+    { name: 'Azul Claro',    hex: '#60A5FA' },
+    { name: 'Verde',         hex: '#16A34A' },
+    { name: 'Verde Militar', hex: '#4B5320' },
+    { name: 'Vermelho',      hex: '#DC2626' },
+    { name: 'Vinho',         hex: '#7F1D1D' },
+    { name: 'Roxo',          hex: '#6D28D9' },
+    { name: 'Rosa',          hex: '#EC4899' },
+    { name: 'Laranja',       hex: '#EA580C' },
+    { name: 'Amarelo',       hex: '#FBBF24' },
+    { name: 'Bege',          hex: '#D4B896' },
+    { name: 'Areia',         hex: '#C4A882' },
+    { name: 'Marrom',        hex: '#7C4A1E' },
+];
+
+/* Migrate old format { id, name, size, color, qty } → new { id, name, color, sizes:{} } */
+function migrate(raw) {
+    try {
+        const arr = JSON.parse(raw || '[]');
+        return arr.map(s => {
+            if (s.sizes) return s; // already new format
+            const sizes = {};
+            SIZES.forEach(sz => sizes[sz] = 0);
+            if (s.size && s.qty) sizes[s.size] = s.qty;
+            return { id: s.id, name: s.name, color: s.color || '#111111', sizes };
+        });
+    } catch { return []; }
+}
+
+let shirts = migrate(localStorage.getItem('sr_shirts'));
+let stamps = JSON.parse(localStorage.getItem('sr_stamps') || '[]');
+
+let selColor   = '#111111';
+let openSizesId = null;
+
+/* ─────────────────────────── Helpers ─── */
+
+function persist() {
+    localStorage.setItem('sr_shirts', JSON.stringify(shirts));
+    localStorage.setItem('sr_stamps', JSON.stringify(stamps));
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function colorInfo(hex) { return COLORS.find(c => c.hex === hex) || { name: hex, hex }; }
+
+function totalQty(shirt) { return SIZES.reduce((s, sz) => s + (shirt.sizes[sz] || 0), 0); }
+
+function blankSizes() { const s = {}; SIZES.forEach(sz => s[sz] = 0); return s; }
+
+let toastTimer;
+function toast(msg, type = 'saved') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `toast show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.className = 'toast', 2800);
+}
+
+/* ─────────────────────────── Stats ─── */
+
+function renderStats() {
+    const total    = shirts.reduce((s, i) => s + totalQty(i), 0);
+    const models   = shirts.length;
+    const low      = shirts.filter(i => { const t = totalQty(i); return t > 0 && t <= 5; }).length;
+    const out      = shirts.filter(i => totalQty(i) === 0).length;
+
+    document.getElementById('stats-bar').innerHTML = `
+        <div class="stat">
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">Peças em Estoque</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">${models}</div>
+            <div class="stat-label">Modelos</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:var(--warning)">${low}</div>
+            <div class="stat-label">Estoque Baixo</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="color:var(--danger)">${out}</div>
+            <div class="stat-label">Esgotadas</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">${stamps.length}</div>
+            <div class="stat-label">Estampas</div>
+        </div>
+    `;
+}
+
+/* ─────────────────────────── Tab ─── */
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab')[0].classList.toggle('active', tab === 'camisetas');
+    document.querySelectorAll('.tab')[1].classList.toggle('active', tab === 'estampas');
+    document.getElementById('tab-camisetas').style.display = tab === 'camisetas' ? '' : 'none';
+    document.getElementById('tab-estampas').style.display  = tab === 'estampas'  ? '' : 'none';
+}
+
+/* ─────────────────────────── Shirts grid ─── */
+
+function renderShirts() {
+    const grid = document.getElementById('shirts-grid');
+
+    if (!shirts.length) {
+        grid.innerHTML = `
+            <div class="empty">
+                <div class="empty-icon">👕</div>
+                <div class="empty-title">Nenhuma camiseta cadastrada</div>
+                <div class="empty-text">Adicione um modelo e depois registre as quantidades por tamanho</div>
+                <button class="btn-add" style="margin:0 auto" onclick="openShirtModal()">＋ Adicionar Camiseta</button>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = shirts.map(s => {
+        const c     = colorInfo(s.color);
+        const total = totalQty(s);
+        const isLow = total > 0 && total <= 5;
+        const isOut = total === 0;
+        const qCls  = isOut ? 'zero' : isLow ? 'low' : 'ok';
+        const cCls  = isOut ? 'out-of-stock' : isLow ? 'low-stock' : '';
+        const badge = isOut
+            ? `<div class="stock-badge badge-out">Esgotado</div>`
+            : isLow
+            ? `<div class="stock-badge badge-low">Baixo</div>`
+            : '';
+
+        const pills = SIZES.map(sz => {
+            const q = s.sizes[sz] || 0;
+            return `<div class="size-pill ${q > 0 ? 'has-stock' : 'no-stock'}">${sz}${q > 0 ? ` · ${q}` : ''}</div>`;
+        }).join('');
+
+        return `
+        <div class="card ${cCls}">
+            <div class="card-color-strip" style="background:${s.color}"></div>
+            ${badge}
+            <div class="card-body">
+                <div class="card-name" title="${s.name}">${s.name}</div>
+                <div class="card-color-row">
+                    <div class="color-dot" style="background:${s.color}${s.color === '#F5F5F5' ? ';border-color:#666' : ''}"></div>
+                    <div class="color-name">${c.name}</div>
+                </div>
+                <div class="card-total ${qCls}">${total}</div>
+                <div class="card-total-label">peças no total</div>
+                <div class="size-pills">${pills}</div>
+                <div class="card-footer">
+                    <button class="btn-sizes" onclick="openSizes('${s.id}')">📦 Ver Tamanhos</button>
+                    <button class="btn-sm"    onclick="editShirt('${s.id}')">✏️</button>
+                    <button class="btn-sm danger" onclick="deleteShirt('${s.id}')">🗑️</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ─────────────────────────── Sizes modal ─── */
+
+function openSizes(id) {
+    openSizesId = id;
+    renderSizesModal();
+    openModal('modal-sizes');
+}
+
+function renderSizesModal() {
+    const s = shirts.find(x => x.id === openSizesId);
+    if (!s) return;
+
+    const c = colorInfo(s.color);
+    document.getElementById('sizes-color-dot').style.cssText =
+        `background:${s.color}${s.color === '#F5F5F5' ? ';border-color:#666' : ''}`;
+    document.getElementById('sizes-title').textContent = s.name;
+
+    document.getElementById('size-rows').innerHTML = SIZES.map(sz => {
+        const q    = s.sizes[sz] || 0;
+        const qCls = q === 0 ? 'zero' : q <= 3 ? 'low' : 'ok';
+        return `
+        <div class="size-row">
+            <div class="size-row-label">${sz}</div>
+            <div class="size-row-qty ${qCls}" id="sqty-${sz}">${q}</div>
+            <div class="size-row-btns">
+                <button class="size-adj-btn plus"  onclick="adjustSize('${s.id}','${sz}',1)">＋</button>
+                <button class="size-adj-btn minus" onclick="adjustSize('${s.id}','${sz}',-1)">−</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function adjustSize(id, sz, delta) {
+    const s = shirts.find(x => x.id === id);
+    if (!s) return;
+    const newVal = (s.sizes[sz] || 0) + delta;
+    if (newVal < 0) { toast('Estoque já está zerado!', 'sold'); return; }
+    s.sizes[sz] = newVal;
+    persist();
+    renderSizesModal();
+    renderShirts();
+    renderStats();
+    if (delta < 0) toast(`− 1 vendida · ${s.name} ${sz}`, 'sold');
+    else           toast(`+ 1 reposta  · ${s.name} ${sz}`, 'added');
+}
+
+/* ─────────────────────────── Shirt CRUD ─── */
+
+function openShirtModal() {
+    document.getElementById('shirt-id').value = '';
+    document.getElementById('shirt-modal-title').textContent = 'Nova Camiseta';
+    document.getElementById('shirt-name').value = '';
+    selColor = '#111111';
+    buildColorGrid();
+    openModal('modal-shirt');
+}
+
+function editShirt(id) {
+    const s = shirts.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('shirt-id').value = s.id;
+    document.getElementById('shirt-modal-title').textContent = 'Editar Camiseta';
+    document.getElementById('shirt-name').value = s.name;
+    selColor = s.color;
+    buildColorGrid();
+    openModal('modal-shirt');
+}
+
+function saveShirt() {
+    const name = document.getElementById('shirt-name').value.trim();
+    const id   = document.getElementById('shirt-id').value;
+    if (!name) { alert('Digite o nome/estampa!'); return; }
+
+    if (id) {
+        const s = shirts.find(x => x.id === id);
+        if (s) { s.name = name; s.color = selColor; }
+    } else {
+        shirts.push({ id: uid(), name, color: selColor, sizes: blankSizes() });
+    }
+
+    persist();
+    closeModal('modal-shirt');
+    renderShirts();
+    renderStats();
+    toast(id ? 'Camiseta atualizada!' : 'Camiseta adicionada! Clique em "Ver Tamanhos" para registrar as quantidades.', 'saved');
+}
+
+function deleteShirt(id) {
+    if (!confirm('Remover esta camiseta do estoque?')) return;
+    shirts = shirts.filter(s => s.id !== id);
+    persist();
+    renderShirts();
+    renderStats();
+    toast('Camiseta removida', 'sold');
+}
+
+/* ─────────────────────────── Color grid ─── */
+
+function buildColorGrid() {
+    document.getElementById('color-grid').innerHTML = COLORS.map(c => `
+        <div class="color-swatch ${selColor === c.hex ? 'sel' : ''}"
+             style="background:${c.hex};${c.hex === '#F5F5F5' ? 'border-color:#555!important' : ''}"
+             onclick="pickColor('${c.hex}')" title="${c.name}"></div>
+    `).join('');
+    document.getElementById('color-label').textContent = colorInfo(selColor).name;
+}
+
+function pickColor(h) { selColor = h; buildColorGrid(); }
+
+/* ─────────────────────────── Stamps ─── */
+
+function renderStamps() {
+    const grid = document.getElementById('stamps-grid');
+    if (!stamps.length) {
+        grid.innerHTML = `
+            <div class="empty">
+                <div class="empty-icon">🎨</div>
+                <div class="empty-title">Nenhuma estampa cadastrada</div>
+                <div class="empty-text">Cadastre suas estampas para controlar a disponibilidade</div>
+                <button class="btn-add" style="margin:0 auto" onclick="openStampModal()">＋ Adicionar Estampa</button>
+            </div>`;
+        return;
+    }
+
+    grid.innerHTML = stamps.map(s => {
+        const isLow = s.qty > 0 && s.qty <= 3;
+        const isOut = s.qty === 0;
+        const qCls  = isOut ? 'zero' : isLow ? 'low' : '';
+        const cCls  = isOut ? 'out-of-stock' : isLow ? 'low-stock' : '';
+        const badge = isOut
+            ? `<div class="stock-badge badge-out" style="top:12px">Esgotada</div>`
+            : isLow
+            ? `<div class="stock-badge badge-low" style="top:12px">Baixo</div>`
+            : '';
+
+        return `
+        <div class="stamp-card ${cCls}">
+            ${badge}
+            <div class="stamp-icon">${s.icon || '🎨'}</div>
+            <div class="stamp-name">${s.name}</div>
+            <div class="stamp-desc">${s.desc || ''}</div>
+            <div class="stamp-qty-row">
+                <div>
+                    <div class="qty-label">Disponível</div>
+                    <div class="stamp-qty ${qCls}">${s.qty}</div>
+                </div>
+                <div class="qty-btns">
+                    <button class="qty-btn qty-btn-plus"  onclick="adjustStamp('${s.id}',1)"  title="Adicionar 1">＋</button>
+                    <button class="qty-btn qty-btn-minus" onclick="adjustStamp('${s.id}',-1)" title="Remover 1">−</button>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn-sm"       onclick="editStamp('${s.id}')">✏️ Editar</button>
+                <button class="btn-sm danger" onclick="deleteStamp('${s.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function adjustStamp(id, delta) {
+    const s = stamps.find(x => x.id === id);
+    if (!s || s.qty + delta < 0) return;
+    s.qty += delta;
+    persist(); renderStamps(); renderStats();
+    toast(delta < 0 ? `− 1 · ${s.name}` : `+ 1 · ${s.name}`, delta < 0 ? 'sold' : 'added');
+}
+
+function deleteStamp(id) {
+    if (!confirm('Remover esta estampa?')) return;
+    stamps = stamps.filter(s => s.id !== id);
+    persist(); renderStamps(); renderStats();
+    toast('Estampa removida', 'sold');
+}
+
+function editStamp(id) {
+    const s = stamps.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('stamp-id').value   = s.id;
+    document.getElementById('stamp-modal-title').textContent = 'Editar Estampa';
+    document.getElementById('stamp-name').value = s.name;
+    document.getElementById('stamp-desc').value = s.desc || '';
+    document.getElementById('stamp-qty').value  = s.qty;
+    document.getElementById('stamp-icon').value = s.icon || '';
+    openModal('modal-stamp');
+}
+
+function openStampModal() {
+    document.getElementById('stamp-id').value   = '';
+    document.getElementById('stamp-modal-title').textContent = 'Nova Estampa';
+    document.getElementById('stamp-name').value = '';
+    document.getElementById('stamp-desc').value = '';
+    document.getElementById('stamp-qty').value  = '1';
+    document.getElementById('stamp-icon').value = '';
+    openModal('modal-stamp');
+}
+
+function saveStamp() {
+    const name = document.getElementById('stamp-name').value.trim();
+    const desc = document.getElementById('stamp-desc').value.trim();
+    const qty  = parseInt(document.getElementById('stamp-qty').value) || 0;
+    const icon = document.getElementById('stamp-icon').value.trim();
+    const id   = document.getElementById('stamp-id').value;
+    if (!name) { alert('Digite o nome da estampa!'); return; }
+
+    if (id) {
+        const s = stamps.find(x => x.id === id);
+        if (s) Object.assign(s, { name, desc, qty, icon });
+    } else {
+        stamps.push({ id: uid(), name, desc, qty, icon });
+    }
+
+    persist(); closeModal('modal-stamp'); renderStamps(); renderStats();
+    toast(id ? 'Estampa atualizada!' : 'Estampa adicionada!', 'saved');
+}
+
+/* ─────────────────────────── Modal ─── */
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'));
+});
+
+/* ─────────────────────────── Init ─── */
+
+renderStats();
+renderShirts();
+renderStamps();
+</script>
+</body>
+</html>
