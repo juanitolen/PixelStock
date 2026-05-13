@@ -415,6 +415,11 @@
         </div>
 
         <div class="form-group">
+            <label class="form-label">Valor Unitário (R$)</label>
+            <input class="form-input" id="shirt-price" type="number" min="0" step="0.01" placeholder="Ex: 89.90">
+        </div>
+
+        <div class="form-group">
             <label class="form-label">Cor</label>
             <div class="color-picker-grid" id="color-grid"></div>
             <div class="color-selected-label" id="color-label"></div>
@@ -462,6 +467,11 @@
         <div class="form-group">
             <label class="form-label">Quantidade Disponível</label>
             <input class="form-input" id="stamp-qty" type="number" min="0" value="1">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Valor Unitário (R$)</label>
+            <input class="form-input" id="stamp-price" type="number" min="0" step="0.01" placeholder="Ex: 45.00">
         </div>
 
         <div class="form-group">
@@ -556,6 +566,11 @@ function toast(msg, type = 'saved') {
     toastTimer = setTimeout(() => el.className = 'toast', 2800);
 }
 
+function fmtBRL(v) {
+    if (!v && v !== 0) return '—';
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 /* ─────────────────────────── Stats ─── */
 
 function renderStats() {
@@ -563,6 +578,9 @@ function renderStats() {
     const models   = shirts.length;
     const low      = shirts.filter(i => { const t = totalQty(i); return t > 0 && t <= 5; }).length;
     const out      = shirts.filter(i => totalQty(i) === 0).length;
+    const shirtVal = shirts.reduce((s, i) => s + totalQty(i) * (i.price || 0), 0);
+    const stampVal = stamps.reduce((s, i) => s + (i.qty || 0) * (i.price || 0), 0);
+    const totalVal = shirtVal + stampVal;
 
     document.getElementById('stats-bar').innerHTML = `
         <div class="stat">
@@ -584,6 +602,10 @@ function renderStats() {
         <div class="stat">
             <div class="stat-value">${stamps.length}</div>
             <div class="stat-label">Estampas</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" style="font-size:18px;color:var(--success)">${fmtBRL(totalVal)}</div>
+            <div class="stat-label">Valor do Estoque</div>
         </div>
     `;
 }
@@ -643,6 +665,7 @@ function renderShirts() {
                 </div>
                 <div class="card-total ${qCls}">${total}</div>
                 <div class="card-total-label">peças no total</div>
+                ${s.price ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${fmtBRL(s.price)} un · <span style="color:var(--gold-light);font-weight:700">${fmtBRL(total * s.price)}</span> total</div>` : ''}
                 <div class="size-pills">${pills}</div>
                 <div class="card-footer">
                     <button class="btn-sizes" onclick="openSizes('${s.id}')">📦 Ver Tamanhos</button>
@@ -706,6 +729,7 @@ function openShirtModal() {
     document.getElementById('shirt-id').value = '';
     document.getElementById('shirt-modal-title').textContent = 'Nova Camiseta';
     document.getElementById('shirt-name').value = '';
+    document.getElementById('shirt-price').value = '';
     selColor = '#111111';
     buildColorGrid();
     openModal('modal-shirt');
@@ -717,21 +741,23 @@ function editShirt(id) {
     document.getElementById('shirt-id').value = s.id;
     document.getElementById('shirt-modal-title').textContent = 'Editar Camiseta';
     document.getElementById('shirt-name').value = s.name;
+    document.getElementById('shirt-price').value = s.price || '';
     selColor = s.color;
     buildColorGrid();
     openModal('modal-shirt');
 }
 
 function saveShirt() {
-    const name = document.getElementById('shirt-name').value.trim();
-    const id   = document.getElementById('shirt-id').value;
+    const name  = document.getElementById('shirt-name').value.trim();
+    const price = parseFloat(document.getElementById('shirt-price').value) || 0;
+    const id    = document.getElementById('shirt-id').value;
     if (!name) { alert('Digite o nome/estampa!'); return; }
 
     if (id) {
         const s = shirts.find(x => x.id === id);
-        if (s) { s.name = name; s.color = selColor; }
+        if (s) { s.name = name; s.color = selColor; s.price = price; }
     } else {
-        shirts.push({ id: uid(), name, color: selColor, sizes: blankSizes() });
+        shirts.push({ id: uid(), name, color: selColor, sizes: blankSizes(), price });
     }
 
     persist();
@@ -795,6 +821,7 @@ function renderStamps() {
             <div class="stamp-icon">${s.icon || '🎨'}</div>
             <div class="stamp-name">${s.name}</div>
             <div class="stamp-desc">${s.desc || ''}</div>
+            ${s.price ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${fmtBRL(s.price)} un · <span style="color:var(--gold-light);font-weight:700">${fmtBRL(s.qty * s.price)}</span> total</div>` : ''}
             <div class="stamp-qty-row">
                 <div>
                     <div class="qty-label">Disponível</div>
@@ -831,38 +858,41 @@ function deleteStamp(id) {
 function editStamp(id) {
     const s = stamps.find(x => x.id === id);
     if (!s) return;
-    document.getElementById('stamp-id').value   = s.id;
+    document.getElementById('stamp-id').value    = s.id;
     document.getElementById('stamp-modal-title').textContent = 'Editar Estampa';
-    document.getElementById('stamp-name').value = s.name;
-    document.getElementById('stamp-desc').value = s.desc || '';
-    document.getElementById('stamp-qty').value  = s.qty;
-    document.getElementById('stamp-icon').value = s.icon || '';
+    document.getElementById('stamp-name').value  = s.name;
+    document.getElementById('stamp-desc').value  = s.desc || '';
+    document.getElementById('stamp-qty').value   = s.qty;
+    document.getElementById('stamp-price').value = s.price || '';
+    document.getElementById('stamp-icon').value  = s.icon || '';
     openModal('modal-stamp');
 }
 
 function openStampModal() {
-    document.getElementById('stamp-id').value   = '';
+    document.getElementById('stamp-id').value    = '';
     document.getElementById('stamp-modal-title').textContent = 'Nova Estampa';
-    document.getElementById('stamp-name').value = '';
-    document.getElementById('stamp-desc').value = '';
-    document.getElementById('stamp-qty').value  = '1';
-    document.getElementById('stamp-icon').value = '';
+    document.getElementById('stamp-name').value  = '';
+    document.getElementById('stamp-desc').value  = '';
+    document.getElementById('stamp-qty').value   = '1';
+    document.getElementById('stamp-price').value = '';
+    document.getElementById('stamp-icon').value  = '';
     openModal('modal-stamp');
 }
 
 function saveStamp() {
-    const name = document.getElementById('stamp-name').value.trim();
-    const desc = document.getElementById('stamp-desc').value.trim();
-    const qty  = parseInt(document.getElementById('stamp-qty').value) || 0;
-    const icon = document.getElementById('stamp-icon').value.trim();
-    const id   = document.getElementById('stamp-id').value;
+    const name  = document.getElementById('stamp-name').value.trim();
+    const desc  = document.getElementById('stamp-desc').value.trim();
+    const qty   = parseInt(document.getElementById('stamp-qty').value) || 0;
+    const price = parseFloat(document.getElementById('stamp-price').value) || 0;
+    const icon  = document.getElementById('stamp-icon').value.trim();
+    const id    = document.getElementById('stamp-id').value;
     if (!name) { alert('Digite o nome da estampa!'); return; }
 
     if (id) {
         const s = stamps.find(x => x.id === id);
-        if (s) Object.assign(s, { name, desc, qty, icon });
+        if (s) Object.assign(s, { name, desc, qty, price, icon });
     } else {
-        stamps.push({ id: uid(), name, desc, qty, icon });
+        stamps.push({ id: uid(), name, desc, qty, price, icon });
     }
 
     persist(); closeModal('modal-stamp'); renderStamps(); renderStats();
